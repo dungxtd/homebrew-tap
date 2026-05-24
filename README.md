@@ -1,17 +1,21 @@
-# homebrew-nextflix
+# homebrew-tap
 
-Homebrew tap for [Nextflix](https://github.com/dungxtd/nextflix).
+Homebrew tap for [dungxtd](https://github.com/dungxtd) apps.
 
 ## Install
 
 ```sh
-brew install --cask dungxtd/nextflix/nextflix
+brew install --cask dungxtd/tap/nextflix
 ```
 
 ## Upgrade
 
-The app self-updates via the in-app updater. To force via Homebrew:
+App self-updates via the in-app updater. To force via Homebrew:
 
 ```sh
 brew upgrade --cask nextflix
 ```
+
+## Casks
+
+- **nextflix** — Torrent-streaming video player built with Tauri + libmpv

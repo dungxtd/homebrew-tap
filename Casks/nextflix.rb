@@ -2,8 +2,8 @@ cask "nextflix" do
   version "1.0.1"
   sha256 "REPLACE_WITH_DMG_SHA256_AFTER_FIRST_RELEASE"
 
-  url "https://github.com/dungxtd/nextflix/releases/download/v#{version}/Nextflix_#{version}_aarch64.dmg",
-      verified: "github.com/dungxtd/nextflix/"
+  url "https://github.com/dungxtd/homebrew-tap/releases/download/v#{version}/Nextflix_macos-arm64_Nextflix_#{version}_aarch64.dmg",
+      verified: "github.com/dungxtd/homebrew-tap/"
   name "Nextflix"
   desc "Torrent-streaming video player built with Tauri + libmpv"
   homepage "https://github.com/dungxtd/nextflix"
