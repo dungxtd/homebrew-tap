@@ -1,6 +1,6 @@
 cask "nextflix" do
-  version "1.0.2"
-  sha256 "578935078602a64cbeb902269a782c94a4fb5825a84ff3f2c8f3df1bf1780191"
+  version "1.0.0"
+  sha256 "bee9bdaa0731d35650d481c91c24fd7ab255c79c0df2655257683cb9215ee612"
 
   url "https://github.com/dungxtd/homebrew-tap/releases/download/nextflix-v#{version}/Nextflix_macos-arm64_Nextflix_#{version}_aarch64.dmg",
       verified: "github.com/dungxtd/homebrew-tap/"
