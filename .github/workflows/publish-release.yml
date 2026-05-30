@@ -1,0 +1,161 @@
+name: Publish release for an app
+
+# Triggered by source app repos via repository_dispatch.
+#
+# Expected client_payload:
+#   app_name:     "nextflix" — must match Casks/<app_name>.rb
+#   version:      "1.0.3"
+#   tag:          "v1.0.3"
+#   source_repo:  "dungxtd/nextflix"
+#   run_id:       "12345"
+#
+# Required secrets:
+#   SOURCE_REPO_READ_PAT — Personal Access Token (classic) with `repo` scope
+#                          granting read access to private source repos.
+
+on:
+  repository_dispatch:
+    types: [app-build-finished]
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: App name (must match Casks/<app>.rb)
+        required: true
+      tag:
+        description: Source tag (e.g. v1.0.3)
+        required: true
+      source_repo:
+        description: Source repo (e.g. dungxtd/nextflix)
+        required: true
+      run_id:
+        description: Source workflow run id (find via Actions tab)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: ${{ github.event.client_payload.app_name || inputs.app_name }}
+      TAG:      ${{ github.event.client_payload.tag      || inputs.tag }}
+      VERSION:  ${{ github.event.client_payload.version  || inputs.tag }}
+      SOURCE_REPO: ${{ github.event.client_payload.source_repo || inputs.source_repo }}
+      RUN_ID:   ${{ github.event.client_payload.run_id   || inputs.run_id }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Normalize VERSION (strip leading v)
+        run: echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
+
+      - name: Download artifacts from source workflow run
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-*
+          path: artifacts
+          merge-multiple: true
+          repository: ${{ env.SOURCE_REPO }}
+          run-id: ${{ env.RUN_ID }}
+          github-token: ${{ secrets.SOURCE_REPO_READ_PAT }}
+
+      - name: Verify artifacts
+        run: |
+          set -euo pipefail
+          if [ -z "$(ls -A artifacts 2>/dev/null)" ]; then
+            echo "::error::No artifacts in source run ${RUN_ID}"
+            exit 1
+          fi
+          ls -la artifacts
+
+      - name: Build latest.json
+        run: |
+          set -euo pipefail
+          VERSIONED_TAG="${APP_NAME}-${TAG}"
+          PUB_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSIONED_TAG}"
+
+          MAC_TARGZ=$(ls artifacts | grep -E '\.app\.tar\.gz$' | head -1 || true)
+          MAC_SIG=$(ls artifacts | grep -E '\.app\.tar\.gz\.sig$' | head -1 || true)
+          WIN_ZIP=$(ls artifacts | grep -E '\.(msi|nsis)\.zip$' | head -1 || true)
+          WIN_SIG=$(ls artifacts | grep -E '\.(msi|nsis)\.zip\.sig$' | head -1 || true)
+
+          PLATFORMS="{}"
+          if [ -n "$MAC_TARGZ" ] && [ -n "$MAC_SIG" ]; then
+            MAC_SIG_BODY=$(tr -d '\n' < "artifacts/${MAC_SIG}")
+            PLATFORMS=$(jq -n --arg sig "$MAC_SIG_BODY" --arg url "${PUB_BASE}/${MAC_TARGZ}" \
+              '{"darwin-aarch64":{signature:$sig,url:$url}}')
+          fi
+          if [ -n "$WIN_ZIP" ] && [ -n "$WIN_SIG" ]; then
+            WIN_SIG_BODY=$(tr -d '\n' < "artifacts/${WIN_SIG}")
+            PLATFORMS=$(echo "$PLATFORMS" | jq --arg sig "$WIN_SIG_BODY" --arg url "${PUB_BASE}/${WIN_ZIP}" \
+              '. + {"windows-x86_64":{signature:$sig,url:$url}}')
+          fi
+
+          jq -n \
+            --arg v "$VERSION" \
+            --arg notes "Release ${TAG} of ${APP_NAME}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson platforms "$PLATFORMS" \
+            '{version:$v, notes:$notes, pub_date:$pub_date, platforms:$platforms}' \
+            > artifacts/latest.json
+          cat artifacts/latest.json
+
+      - name: Create versioned + latest releases, upload assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSIONED_TAG="${APP_NAME}-${TAG}"
+          LATEST_TAG="${APP_NAME}-latest"
+
+          # 1. Versioned (immutable archive)
+          if ! gh release view "$VERSIONED_TAG" >/dev/null 2>&1; then
+            gh release create "$VERSIONED_TAG" \
+              --title "${APP_NAME} ${TAG}" \
+              --notes "Release of ${APP_NAME} ${TAG}. Source: ${SOURCE_REPO}." \
+              --target main
+          fi
+          gh release upload "$VERSIONED_TAG" --clobber artifacts/*
+
+          # 2. Moving "latest" release (updater endpoint targets this)
+          if gh release view "$LATEST_TAG" >/dev/null 2>&1; then
+            for a in $(gh release view "$LATEST_TAG" --json assets --jq '.assets[].name'); do
+              gh release delete-asset "$LATEST_TAG" "$a" --yes || true
+            done
+          else
+            gh release create "$LATEST_TAG" \
+              --title "${APP_NAME} (latest)" \
+              --notes "Moving pointer to most recent ${APP_NAME} release. Updater endpoint: latest.json here." \
+              --target main
+          fi
+          gh release upload "$LATEST_TAG" --clobber artifacts/*
+
+      - name: Bump cask (version + sha256)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          CASK="Casks/${APP_NAME}.rb"
+          if [ ! -f "$CASK" ]; then
+            echo "::warning::no cask file $CASK — skipping bump"
+            exit 0
+          fi
+          DMG=$(ls artifacts | grep -E '\.dmg$' | head -1 || true)
+          if [ -z "$DMG" ]; then
+            echo "::warning::no DMG in artifacts — skipping bump"
+            exit 0
+          fi
+          SHA=$(shasum -a 256 "artifacts/${DMG}" | awk '{print $1}')
+
+          sed -i -E "s/version \"[0-9.]+\"/version \"${VERSION}\"/" "$CASK"
+          sed -i -E "s/sha256 \"[0-9a-f]+\"/sha256 \"${SHA}\"/" "$CASK"
+
+          if git diff --quiet "$CASK"; then
+            echo "Cask already up-to-date"
+            exit 0
+          fi
+          git config user.email "ci@github.actions"
+          git config user.name "release-bot"
+          git add "$CASK"
+          git commit -m "chore(${APP_NAME}): bump to v${VERSION}"
+          git push
