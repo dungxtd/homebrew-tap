@@ -13,6 +13,15 @@ cask "nextflix" do
 
   app "Nextflix.app"
 
+  # The DMG is ad-hoc signed (no Apple Developer ID + notarization yet), so
+  # Gatekeeper attaches com.apple.quarantine and refuses to launch the app
+  # with "damaged/cannot verify" on first open. Strip the attribute on install.
+  # Remove this block once we move to Developer ID + notarytool.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Nextflix.app"]
+  end
+
   zap trash: [
     "~/Library/Application Support/nextflix",
     "~/Library/Logs/Nextflix",
