@@ -1,15 +1,23 @@
 cask "nextflix" do
   version "1.0.2"
-  sha256 "8224f273936fa60204dd779cbcf55af4a405c9e7a306d8f5dcb400098d6388f8"
 
-  url "https://github.com/dungxtd/homebrew-tap/releases/download/nextflix-v#{version}/Nextflix_macos-arm64_Nextflix_#{version}_aarch64.dmg",
-      verified: "github.com/dungxtd/homebrew-tap/"
+  on_arm do
+    sha256 "8224f273936fa60204dd779cbcf55af4a405c9e7a306d8f5dcb400098d6388f8"
+    url "https://github.com/dungxtd/homebrew-tap/releases/download/nextflix-v#{version}/Nextflix_macos-arm64_Nextflix_#{version}_aarch64.dmg",
+        verified: "github.com/dungxtd/homebrew-tap/"
+  end
+
+  on_intel do
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    url "https://github.com/dungxtd/homebrew-tap/releases/download/nextflix-v#{version}/Nextflix_macos-x64_Nextflix_#{version}_x64.dmg",
+        verified: "github.com/dungxtd/homebrew-tap/"
+  end
+
   name "Nextflix"
   desc "Torrent-streaming video player built with Tauri + libmpv"
   homepage "https://github.com/dungxtd/nextflix"
 
   depends_on macos: ">= :catalina"
-  depends_on arch: :arm64
 
   app "Nextflix.app"
 
