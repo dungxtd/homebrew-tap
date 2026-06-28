@@ -7,7 +7,6 @@ name: Publish release for an app
 #   version:      "1.0.3"
 #   tag:          "v1.0.3"
 #   source_repo:  "dungxtd/nextflix"
-#   run_id:       "12345"   (no longer required — kept for backward compat)
 #
 # Required secrets:
 #   SOURCE_REPO_READ_PAT — Personal Access Token (classic) with `repo` scope
@@ -65,28 +64,31 @@ jobs:
           fi
           ls -la artifacts
 
-      - name: Build latest.json
+      - name: Build latest.json (updater manifest, all platforms)
         run: |
           set -euo pipefail
           VERSIONED_TAG="${APP_NAME}-${TAG}"
           PUB_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSIONED_TAG}"
 
-          MAC_TARGZ=$(ls artifacts | grep -E '\.app\.tar\.gz$' | head -1 || true)
-          MAC_SIG=$(ls artifacts | grep -E '\.app\.tar\.gz\.sig$' | head -1 || true)
-          WIN_ZIP=$(ls artifacts | grep -E '\.(msi|nsis)\.zip$' | head -1 || true)
-          WIN_SIG=$(ls artifacts | grep -E '\.(msi|nsis)\.zip\.sig$' | head -1 || true)
-
           PLATFORMS="{}"
-          if [ -n "$MAC_TARGZ" ] && [ -n "$MAC_SIG" ]; then
-            MAC_SIG_BODY=$(tr -d '\n' < "artifacts/${MAC_SIG}")
-            PLATFORMS=$(jq -n --arg sig "$MAC_SIG_BODY" --arg url "${PUB_BASE}/${MAC_TARGZ}" \
-              '{"darwin-aarch64":{signature:$sig,url:$url}}')
-          fi
-          if [ -n "$WIN_ZIP" ] && [ -n "$WIN_SIG" ]; then
-            WIN_SIG_BODY=$(tr -d '\n' < "artifacts/${WIN_SIG}")
-            PLATFORMS=$(echo "$PLATFORMS" | jq --arg sig "$WIN_SIG_BODY" --arg url "${PUB_BASE}/${WIN_ZIP}" \
-              '. + {"windows-x86_64":{signature:$sig,url:$url}}')
-          fi
+          # add <asset-label> <updater platform key>
+          add() {
+            label="$1"; key="$2"
+            zip=$(ls artifacts | grep -E "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)$" | head -1 || true)
+            sig=$(ls artifacts | grep -E "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)\.sig$" | head -1 || true)
+            if [ -n "$zip" ] && [ -n "$sig" ]; then
+              body=$(tr -d '\n' < "artifacts/${sig}")
+              PLATFORMS=$(echo "$PLATFORMS" | jq --arg k "$key" --arg sig "$body" --arg url "${PUB_BASE}/${zip}" \
+                '. + {($k): {signature:$sig, url:$url}}')
+              echo "latest.json: $key -> $zip"
+            else
+              echo "latest.json: $key skipped (no updater archive)"
+            fi
+          }
+          add "macos-arm64"   "darwin-aarch64"
+          add "macos-x64"     "darwin-x86_64"
+          add "windows-x64"   "windows-x86_64"
+          add "windows-arm64" "windows-aarch64"
 
           jq -n \
             --arg v "$VERSION" \
@@ -127,7 +129,7 @@ jobs:
           fi
           gh release upload "$LATEST_TAG" --clobber artifacts/*
 
-      - name: Bump cask (version + sha256)
+      - name: Bump cask (dual-arch version + sha256)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -137,15 +139,30 @@ jobs:
             echo "::warning::no cask file $CASK — skipping bump"
             exit 0
           fi
-          DMG=$(ls artifacts | grep -E '\.dmg$' | head -1 || true)
-          if [ -z "$DMG" ]; then
-            echo "::warning::no DMG in artifacts — skipping bump"
+          ARM_DMG=$(ls artifacts | grep -E "${APP_NAME}_macos-arm64_.*\.dmg$" | head -1 || true)
+          INTEL_DMG=$(ls artifacts | grep -E "${APP_NAME}_macos-x64_.*\.dmg$" | head -1 || true)
+          if [ -z "$ARM_DMG" ] && [ -z "$INTEL_DMG" ]; then
+            echo "::warning::no macOS DMGs in artifacts — skipping cask bump"
             exit 0
           fi
-          SHA=$(shasum -a 256 "artifacts/${DMG}" | awk '{print $1}')
+          ARM_SHA=""; INTEL_SHA=""
+          [ -n "$ARM_DMG" ]   && ARM_SHA=$(shasum -a 256 "artifacts/${ARM_DMG}" | awk '{print $1}')
+          [ -n "$INTEL_DMG" ] && INTEL_SHA=$(shasum -a 256 "artifacts/${INTEL_DMG}" | awk '{print $1}')
 
-          sed -i -E "s/version \"[0-9.]+\"/version \"${VERSION}\"/" "$CASK"
-          sed -i -E "s/sha256 \"[0-9a-f]+\"/sha256 \"${SHA}\"/" "$CASK"
+          # The cask URLs are static (they interpolate #{version}); only the
+          # version line and the per-arch sha256 lines change each release.
+          # awk tracks which on_arch block each sha256 belongs to.
+          awk -v ver="$VERSION" -v armsha="$ARM_SHA" -v intelsha="$INTEL_SHA" '
+            /^  version / { print "  version \"" ver "\""; next }
+            /on_arm do/   { blk="arm";   print; next }
+            /on_intel do/ { blk="intel"; print; next }
+            /^    sha256 / {
+              if (blk=="arm"   && armsha   != "") { print "    sha256 \"" armsha   "\""; next }
+              if (blk=="intel" && intelsha != "") { print "    sha256 \"" intelsha "\""; next }
+            }
+            { print }
+          ' "$CASK" > "$CASK.tmp" && mv "$CASK.tmp" "$CASK"
+          cat "$CASK"
 
           if git diff --quiet "$CASK"; then
             echo "Cask already up-to-date"
