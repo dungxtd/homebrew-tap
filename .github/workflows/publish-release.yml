@@ -139,11 +139,11 @@ jobs:
             echo "::warning::no cask file $CASK — skipping bump"
             exit 0
           fi
-          ARM_DMG=$(ls artifacts | grep -E "${APP_NAME}_macos-arm64_.*\.dmg$" | head -1 || true)
-          INTEL_DMG=$(ls artifacts | grep -E "${APP_NAME}_macos-x64_.*\.dmg$" | head -1 || true)
+          ARM_DMG=$(ls artifacts | grep -iE "_macos-arm64_.*\.dmg$" | head -1 || true)
+          INTEL_DMG=$(ls artifacts | grep -iE "_macos-x64_.*\.dmg$" | head -1 || true)
           if [ -z "$ARM_DMG" ] && [ -z "$INTEL_DMG" ]; then
-            echo "::warning::no macOS DMGs in artifacts — skipping cask bump"
-            exit 0
+            echo "::error::no macOS DMGs found in artifacts — cannot bump cask sha256"
+            exit 1
           fi
           ARM_SHA=""; INTEL_SHA=""
           [ -n "$ARM_DMG" ]   && ARM_SHA=$(shasum -a 256 "artifacts/${ARM_DMG}" | awk '{print $1}')
