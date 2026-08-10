@@ -74,8 +74,8 @@ jobs:
           # add <asset-label> <updater platform key>
           add() {
             label="$1"; key="$2"
-            zip=$(ls artifacts | grep -E "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)$" | head -1 || true)
-            sig=$(ls artifacts | grep -E "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)\.sig$" | head -1 || true)
+            zip=$(ls artifacts | grep -iE "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)$" | head -1 || true)
+            sig=$(ls artifacts | grep -iE "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)\.sig$" | head -1 || true)
             if [ -n "$zip" ] && [ -n "$sig" ]; then
               body=$(tr -d '\n' < "artifacts/${sig}")
               PLATFORMS=$(echo "$PLATFORMS" | jq --arg k "$key" --arg sig "$body" --arg url "${PUB_BASE}/${zip}" \
