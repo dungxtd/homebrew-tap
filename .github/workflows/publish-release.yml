@@ -30,6 +30,12 @@ on:
 permissions:
   contents: write
 
+# Every run pushes a cask bump to main; serialize runs (across all apps) so
+# concurrent publishes never race on `git push`. Queue, don't cancel.
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -172,4 +178,5 @@ jobs:
           git config user.name "release-bot"
           git add "$CASK"
           git commit -m "chore(${APP_NAME}): bump to v${VERSION}"
+          git pull --rebase origin main
           git push
