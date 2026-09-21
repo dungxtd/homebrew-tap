@@ -3,10 +3,10 @@ name: Publish release for an app
 # Triggered by source app repos via repository_dispatch.
 #
 # Expected client_payload:
-#   app_name:     "nextflix" — must match Casks/<app_name>.rb
+#   app_name:     "<app>" — must match Casks/<app_name>.rb
 #   version:      "1.0.3"
 #   tag:          "v1.0.3"
-#   source_repo:  "dungxtd/nextflix"
+#   source_repo:  "<owner>/<app>"
 #
 # Required secrets:
 #   SOURCE_REPO_READ_PAT — Personal Access Token (classic) with `repo` scope
@@ -24,7 +24,7 @@ on:
         description: Source tag (e.g. v1.0.3)
         required: true
       source_repo:
-        description: Source repo (e.g. dungxtd/nextflix)
+        description: Source repo (e.g. <owner>/<app>)
         required: true
 
 permissions:

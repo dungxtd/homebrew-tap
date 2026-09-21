@@ -1,24 +1,40 @@
 # dungxtd/homebrew-tap
 
-Homebrew tap hosting macOS + Windows builds and updater manifests for [@dungxtd](https://github.com/dungxtd) apps.
+Homebrew tap for [@dungxtd](https://github.com/dungxtd)'s desktop apps. Hosts macOS casks, Windows installers, and auto-update manifests.
 
-## Install
+## Installation
+
+Add the tap once:
 
 ```sh
 brew tap dungxtd/tap
-brew install --cask <app>
+```
+
+Install an app (example: nextflix):
+
+```sh
+brew install --cask dungxtd/tap/nextflix
 ```
 
 ## Upgrade
 
-Apps self-update via in-app updater. Force via Homebrew:
+Apps update themselves in-app. To upgrade through Homebrew:
 
 ```sh
+brew update
 brew upgrade --cask <app>
 ```
 
-## Casks
+## Uninstall
 
-| Cask | Description | Install |
-| --- | --- | --- |
-| [nextflix](Casks/nextflix.rb) | Torrent-streaming video player | `brew install --cask dungxtd/tap/nextflix` |
+```sh
+brew uninstall --cask <app>          # keep app data
+brew uninstall --cask --zap <app>    # also remove app data
+```
+
+## Layout
+
+- `Casks/<app>.rb` — one cask per app.
+- Releases `<app>-<version>` — versioned installers, kept as an archive.
+- Release `<app>-latest` — moving pointer holding the newest installers and `latest.json` (updater manifest).
+- `.github/workflows/publish-release.yml` — publishes any app's release and bumps its cask. Triggered by the app repo via `repository_dispatch`.
