@@ -15,7 +15,7 @@ cask "nextflix" do
   desc "Torrent-streaming video player built with Tauri + libmpv"
   homepage "https://github.com/dungxtd/nextflix"
 
-  depends_on macos: :catalina
+  depends_on macos: :big_sur
 
   app "Nextflix.app"
 
