@@ -23,9 +23,9 @@ cask "nextflix" do
   # Gatekeeper attaches com.apple.quarantine and refuses to launch the app
   # with "damaged/cannot verify" on first open. Strip the attribute on install.
   # Remove this block once we move to Developer ID + notarytool.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Nextflix.app"]
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "{{appdir}}/Nextflix.app"]
   end
 
   zap trash: [
