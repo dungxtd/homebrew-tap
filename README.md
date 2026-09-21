@@ -32,6 +32,14 @@ brew uninstall --cask <app>          # keep app data
 brew uninstall --cask --zap <app>    # also remove app data
 ```
 
+## Adding an app
+
+1. Copy [`templates/cask.rb.tmpl`](templates/cask.rb.tmpl) to `Casks/<app>.rb` and fill the placeholders.
+2. In the app repo, add the job from [`templates/dispatch-to-tap.yml.tmpl`](templates/dispatch-to-tap.yml.tmpl) to its release workflow.
+3. Add the `HOMEBREW_TAP_PAT` secret to the app repo. Make sure this repo's `SOURCE_REPO_READ_PAT` can read the app repo.
+4. Name release assets `<ProductName>_<label>_...`, with `<label>` one of `macos-arm64`, `macos-x64`, `windows-x64`, `windows-arm64`. `<ProductName>` must match `<app>` ignoring case.
+5. Point the app's updater endpoint at `https://github.com/dungxtd/homebrew-tap/releases/download/<app>-latest/latest.json`.
+
 ## Layout
 
 - `Casks/<app>.rb` — one cask per app.

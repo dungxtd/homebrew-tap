@@ -1,0 +1,43 @@
+# Paste as a job into the app repo's release workflow (after the build jobs).
+#
+# Requirements in the app repo:
+#   - secret HOMEBREW_TAP_PAT: token allowed to create a repository_dispatch
+#     on dungxtd/homebrew-tap
+#   - the build jobs already published their installers to the GitHub Release
+#     for the tag, named `<App>_<label>_...` where <label> is one of
+#     macos-arm64, macos-x64, windows-x64, windows-arm64
+#
+# The tap then downloads all assets of that release, builds latest.json,
+# republishes them under `<app>-<tag>` and `<app>-latest`, and bumps
+# Casks/<app>.rb.
+#
+# Note: this only confirms the dispatch was sent, not that the tap finished.
+# Check the tap's own Actions run for the real result.
+
+  dispatch-to-tap:
+    needs: [<build-job>, <build-job>]
+    # Run even if some build legs failed, so platforms that did build still
+    # publish. Skip on cancel and on dry runs.
+    if: ${{ !cancelled() && inputs.dry_run != true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify tap repo to publish
+        uses: actions/github-script@v8
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          APP_NAME: <app>
+        with:
+          github-token: ${{ secrets.HOMEBREW_TAP_PAT }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: 'dungxtd',
+              repo: 'homebrew-tap',
+              event_type: 'app-build-finished',
+              client_payload: {
+                app_name: process.env.APP_NAME,
+                version: process.env.TAG.replace(/^v/, ''),
+                tag: process.env.TAG,
+                source_repo: process.env.GITHUB_REPOSITORY,
+              },
+            })
+            console.log('Dispatched app-build-finished to dungxtd/homebrew-tap')

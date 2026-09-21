@@ -1,0 +1,44 @@
+# Copy to Casks/<app>.rb and replace every <placeholder>:
+#   <app>       lowercase app name; equals `app_name` in the dispatch payload
+#   <App>       product name; equals the Tauri productName and the asset prefix
+#   <identifier> bundle identifier / app data folder name (see tauri.conf.json)
+#   <Description> short description, no leading "A"/"The"
+#
+# The publish workflow only rewrites the `version` line and the `sha256` line
+# inside `on_arm` / `on_intel`. Keep this structure so those edits still match.
+cask "<app>" do
+  version "0.0.0"
+
+  on_arm do
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    url "https://github.com/dungxtd/homebrew-tap/releases/download/<app>-v#{version}/<App>_macos-arm64_<App>_#{version}_aarch64.dmg"
+  end
+
+  on_intel do
+    sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+    url "https://github.com/dungxtd/homebrew-tap/releases/download/<app>-v#{version}/<App>_macos-x64_<App>_#{version}_x64.dmg"
+  end
+
+  name "<App>"
+  desc "<Description>"
+  homepage "https://github.com/dungxtd/homebrew-tap"
+
+  depends_on macos: :big_sur
+
+  app "<App>.app"
+
+  # Ad-hoc signed apps (no Developer ID / notarization) are quarantined by
+  # Gatekeeper. Remove this block once the app is notarized.
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "{{appdir}}/<App>.app"]
+  end
+
+  # Remove app data on `brew uninstall --zap`. Keep entries alphabetical.
+  zap trash: [
+    "~/Library/Application Support/<identifier>",
+    "~/Library/Caches/<identifier>",
+    "~/Library/Logs/<App>",
+    "~/Library/Preferences/<identifier>.plist",
+  ]
+end
