@@ -12,8 +12,8 @@ cask "nextflix" do
   end
 
   name "Nextflix"
-  desc "Torrent-streaming video player built with Tauri + libmpv"
-  homepage "https://github.com/dungxtd/nextflix"
+  desc "Next version of flix"
+  homepage "https://github.com/dungxtd/homebrew-tap"
 
   depends_on macos: :big_sur
 
