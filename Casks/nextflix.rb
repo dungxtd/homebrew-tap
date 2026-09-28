@@ -2,12 +2,12 @@ cask "nextflix" do
   version "1.0.4"
 
   on_arm do
-    sha256 "a616d3daa1ee98458a5828ead5445f42ca075e53e8b2a439ae0f6b92d59bd5d9"
+    sha256 "13c2cad8e1943839ab5083f55aac209e97f34db167f378a86c41e43d35e45b0b"
     url "https://github.com/dungxtd/homebrew-tap/releases/download/nextflix-v#{version}/Nextflix_macos-arm64_Nextflix_#{version}_aarch64.dmg"
   end
 
   on_intel do
-    sha256 "4ae45d132863a3032a1c7787a99cb71dc6c1161d1907cb5bb52f896f1f918776"
+    sha256 "93a2897d39b1e8a6f14eeabccd3cd815c54db848010d7d0be6e9baff83024662"
     url "https://github.com/dungxtd/homebrew-tap/releases/download/nextflix-v#{version}/Nextflix_macos-x64_Nextflix_#{version}_x64.dmg"
   end
 
