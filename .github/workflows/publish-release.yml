@@ -80,15 +80,22 @@ jobs:
           # add <asset-label> <updater platform key>
           add() {
             label="$1"; key="$2"
-            zip=$(ls artifacts | grep -iE "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)$" | head -1 || true)
-            sig=$(ls artifacts | grep -iE "${APP_NAME}_${label}_.*\.(app\.tar\.gz|msi\.zip|nsis\.zip)\.sig$" | head -1 || true)
-            if [ -n "$zip" ] && [ -n "$sig" ]; then
-              body=$(tr -d '\n' < "artifacts/${sig}")
-              PLATFORMS=$(echo "$PLATFORMS" | jq --arg k "$key" --arg sig "$body" --arg url "${PUB_BASE}/${zip}" \
+            # Updater package + its .sig: macOS .app.tar.gz; Windows the NSIS
+            # installer (Tauri v2 signs installers directly, no .zip), MSI as
+            # fallback.
+            pkg=""
+            for ext in '\.app\.tar\.gz' '-setup\.exe' '\.msi'; do
+              pkg=$(ls artifacts | grep -iE "^${APP_NAME}_${label}_.*${ext}$" | head -1 || true)
+              [ -n "$pkg" ] && [ -f "artifacts/${pkg}.sig" ] && break
+              pkg=""
+            done
+            if [ -n "$pkg" ]; then
+              body=$(tr -d '\n' < "artifacts/${pkg}.sig")
+              PLATFORMS=$(echo "$PLATFORMS" | jq --arg k "$key" --arg sig "$body" --arg url "${PUB_BASE}/${pkg}" \
                 '. + {($k): {signature:$sig, url:$url}}')
-              echo "latest.json: $key -> $zip"
+              echo "latest.json: $key -> $pkg"
             else
-              echo "latest.json: $key skipped (no updater archive)"
+              echo "latest.json: $key skipped (no signed updater package)"
             fi
           }
           add "macos-arm64"   "darwin-aarch64"
