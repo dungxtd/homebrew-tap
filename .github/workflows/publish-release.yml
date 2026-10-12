@@ -77,17 +77,18 @@ jobs:
           PUB_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSIONED_TAG}"
 
           PLATFORMS="{}"
-          # add <asset-label> <updater platform key>
+          # add "<asset-label>..." <updater platform key> <package pattern>...
+          # Takes the first label and pattern with a package that has a .sig
+          # beside it.
           add() {
-            label="$1"; key="$2"
-            # Updater package + its .sig: macOS .app.tar.gz; Windows the NSIS
-            # installer (Tauri v2 signs installers directly, no .zip), MSI as
-            # fallback.
+            labels="$1"; key="$2"; shift 2
             pkg=""
-            for ext in '\.app\.tar\.gz' '-setup\.exe' '\.msi'; do
-              pkg=$(ls artifacts | grep -iE "^${APP_NAME}_${label}_.*${ext}$" | head -1 || true)
-              [ -n "$pkg" ] && [ -f "artifacts/${pkg}.sig" ] && break
-              pkg=""
+            for label in $labels; do
+              for ext in "$@"; do
+                pkg=$(ls artifacts | grep -iE "^${APP_NAME}_${label}_.*${ext}$" | head -1 || true)
+                [ -n "$pkg" ] && [ -f "artifacts/${pkg}.sig" ] && break 2
+                pkg=""
+              done
             done
             if [ -n "$pkg" ]; then
               body=$(tr -d '\n' < "artifacts/${pkg}.sig")
@@ -98,10 +99,19 @@ jobs:
               echo "latest.json: $key skipped (no signed updater package)"
             fi
           }
-          add "macos-arm64"   "darwin-aarch64"
-          add "macos-x64"     "darwin-x86_64"
-          add "windows-x64"   "windows-x86_64"
-          add "windows-arm64" "windows-aarch64"
+          # macOS: one universal .app.tar.gz serves both architectures (older
+          # releases shipped one per architecture).
+          add "macos-universal macos-arm64" "darwin-aarch64" '\.app\.tar\.gz'
+          add "macos-universal macos-x64"   "darwin-x86_64"  '\.app\.tar\.gz'
+          # Windows: the NSIS installer (Tauri v2 signs installers directly, no
+          # .zip), MSI as fallback.
+          add "windows-x64"   "windows-x86_64"  '-setup\.exe' '\.msi'
+          add "windows-arm64" "windows-aarch64" '-setup\.exe' '\.msi'
+          # Windows in-place update archive: the app swaps it in without an
+          # installer. Extra platform keys, so clients that don't know them keep
+          # using the installer keys above.
+          add "windows-x64"   "windows-x86_64-inplace"  'update\.zip'
+          add "windows-arm64" "windows-aarch64-inplace" 'update\.zip'
 
           jq -n \
             --arg v "$VERSION" \
@@ -142,7 +152,7 @@ jobs:
           fi
           gh release upload "$LATEST_TAG" --clobber artifacts/*
 
-      - name: Bump cask (dual-arch version + sha256)
+      - name: Bump cask (version + sha256)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -152,8 +162,14 @@ jobs:
             echo "::warning::no cask file $CASK — skipping bump"
             exit 0
           fi
+          # One universal DMG serves both architectures (older releases shipped
+          # one per architecture).
+          UNIVERSAL_DMG=$(ls artifacts | grep -iE "_macos-universal_.*\.dmg$" | head -1 || true)
           ARM_DMG=$(ls artifacts | grep -iE "_macos-arm64_.*\.dmg$" | head -1 || true)
           INTEL_DMG=$(ls artifacts | grep -iE "_macos-x64_.*\.dmg$" | head -1 || true)
+          if [ -n "$UNIVERSAL_DMG" ]; then
+            ARM_DMG="$UNIVERSAL_DMG"; INTEL_DMG="$UNIVERSAL_DMG"
+          fi
           if [ -z "$ARM_DMG" ] && [ -z "$INTEL_DMG" ]; then
             echo "::error::no macOS DMGs found in artifacts — cannot bump cask sha256"
             exit 1
@@ -162,10 +178,19 @@ jobs:
           [ -n "$ARM_DMG" ]   && ARM_SHA=$(shasum -a 256 "artifacts/${ARM_DMG}" | awk '{print $1}')
           [ -n "$INTEL_DMG" ] && INTEL_SHA=$(shasum -a 256 "artifacts/${INTEL_DMG}" | awk '{print $1}')
 
-          # The cask URLs are static (they interpolate #{version}); only the
+          # With a universal DMG both blocks point at it, so the url lines are
+          # rewritten too (the file name with the version as `#{version}`).
+          # Per-arch releases keep the static url lines.
+          UNIVERSAL_URL=""
+          if [ -n "$UNIVERSAL_DMG" ]; then
+            UNIVERSAL_FILE=$(printf '%s' "$UNIVERSAL_DMG" | sed "s/${VERSION}/#{version}/")
+            UNIVERSAL_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${APP_NAME}-v#{version}/${UNIVERSAL_FILE}"
+          fi
+
+          # Otherwise the urls are static (they interpolate #{version}); only the
           # version line and the per-arch sha256 lines change each release.
-          # awk tracks which on_arch block each sha256 belongs to.
-          awk -v ver="$VERSION" -v armsha="$ARM_SHA" -v intelsha="$INTEL_SHA" '
+          # awk tracks which on_arch block each line belongs to.
+          awk -v ver="$VERSION" -v armsha="$ARM_SHA" -v intelsha="$INTEL_SHA" -v url="$UNIVERSAL_URL" '
             /^  version / { print "  version \"" ver "\""; next }
             /on_arm do/   { blk="arm";   print; next }
             /on_intel do/ { blk="intel"; print; next }
@@ -173,6 +198,7 @@ jobs:
               if (blk=="arm"   && armsha   != "") { print "    sha256 \"" armsha   "\""; next }
               if (blk=="intel" && intelsha != "") { print "    sha256 \"" intelsha "\""; next }
             }
+            /^    url / { if (url != "") { print "    url \"" url "\""; next } }
             { print }
           ' "$CASK" > "$CASK.tmp" && mv "$CASK.tmp" "$CASK"
           cat "$CASK"
