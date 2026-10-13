@@ -61,6 +61,21 @@ jobs:
           gh release download "$TAG" --repo "$SOURCE_REPO" --dir artifacts --clobber
           ls -la artifacts
 
+      - name: Fetch release notes from source repo
+        env:
+          GH_TOKEN: ${{ secrets.SOURCE_REPO_READ_PAT }}
+        run: |
+          set -euo pipefail
+          # The source release body (commit notes written by its release.yml). Kept
+          # outside artifacts/ so it is not uploaded as an asset. Falls back to a
+          # one-liner for releases that have no notes.
+          gh release view "$TAG" --repo "$SOURCE_REPO" --json body --jq .body > "$RUNNER_TEMP/notes.md" || true
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
+            echo "Release ${TAG} of ${APP_NAME}" > "$RUNNER_TEMP/notes.md"
+          fi
+          printf '\nSource: https://github.com/%s/releases/tag/%s\n' "$SOURCE_REPO" "$TAG" >> "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
       - name: Verify artifacts
         run: |
           set -euo pipefail
@@ -115,7 +130,7 @@ jobs:
 
           jq -n \
             --arg v "$VERSION" \
-            --arg notes "Release ${TAG} of ${APP_NAME}" \
+            --rawfile notes "$RUNNER_TEMP/notes.md" \
             --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --argjson platforms "$PLATFORMS" \
             '{version:$v, notes:$notes, pub_date:$pub_date, platforms:$platforms}' \
@@ -134,8 +149,11 @@ jobs:
           if ! gh release view "$VERSIONED_TAG" >/dev/null 2>&1; then
             gh release create "$VERSIONED_TAG" \
               --title "${APP_NAME} ${TAG}" \
-              --notes "Release of ${APP_NAME} ${TAG}. Source: ${SOURCE_REPO}." \
+              --notes-file "$RUNNER_TEMP/notes.md" \
               --target main
+          else
+            # A re-run refreshes the notes (e.g. after the source release was edited).
+            gh release edit "$VERSIONED_TAG" --notes-file "$RUNNER_TEMP/notes.md"
           fi
           gh release upload "$VERSIONED_TAG" --clobber artifacts/*
 
