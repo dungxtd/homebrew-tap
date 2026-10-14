@@ -73,7 +73,6 @@ jobs:
           if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
             echo "Release ${TAG} of ${APP_NAME}" > "$RUNNER_TEMP/notes.md"
           fi
-          printf '\nSource: https://github.com/%s/releases/tag/%s\n' "$SOURCE_REPO" "$TAG" >> "$RUNNER_TEMP/notes.md"
           cat "$RUNNER_TEMP/notes.md"
 
       - name: Verify artifacts
