@@ -113,10 +113,10 @@ jobs:
               echo "latest.json: $key skipped (no signed updater package)"
             fi
           }
-          # macOS: one universal .app.tar.gz serves both architectures (older
-          # releases shipped one per architecture).
-          add "macos-universal macos-arm64" "darwin-aarch64" '\.app\.tar\.gz'
-          add "macos-universal macos-x64"   "darwin-x86_64"  '\.app\.tar\.gz'
+          # macOS: one .app.tar.gz per architecture (releases up to v1.1.0 shipped one
+          # universal archive for both).
+          add "macos-arm64 macos-universal" "darwin-aarch64" '\.app\.tar\.gz'
+          add "macos-x64 macos-universal"   "darwin-x86_64"  '\.app\.tar\.gz'
           # Windows: the NSIS installer (Tauri v2 signs installers directly, no
           # .zip), MSI as fallback.
           add "windows-x64"   "windows-x86_64"  '-setup\.exe' '\.msi'
@@ -195,19 +195,15 @@ jobs:
           [ -n "$ARM_DMG" ]   && ARM_SHA=$(shasum -a 256 "artifacts/${ARM_DMG}" | awk '{print $1}')
           [ -n "$INTEL_DMG" ] && INTEL_SHA=$(shasum -a 256 "artifacts/${INTEL_DMG}" | awk '{print $1}')
 
-          # With a universal DMG both blocks point at it, so the url lines are
-          # rewritten too (the file name with the version as `#{version}`).
-          # Per-arch releases keep the static url lines.
-          UNIVERSAL_URL=""
-          if [ -n "$UNIVERSAL_DMG" ]; then
-            UNIVERSAL_FILE=$(printf '%s' "$UNIVERSAL_DMG" | sed "s/${VERSION}/#{version}/")
-            UNIVERSAL_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${APP_NAME}-v#{version}/${UNIVERSAL_FILE}"
-          fi
+          # The url lines are rewritten from the DMG file names, with the version as
+          # `#{version}`: a universal DMG backs both blocks, per-arch DMGs one each.
+          cask_url() { printf 'https://github.com/%s/releases/download/%s-v#{version}/%s' "$GITHUB_REPOSITORY" "$APP_NAME" "$(printf '%s' "$1" | sed "s/${VERSION}/#{version}/")"; }
+          ARM_URL=""; INTEL_URL=""
+          [ -n "$ARM_DMG" ]   && ARM_URL=$(cask_url "$ARM_DMG")
+          [ -n "$INTEL_DMG" ] && INTEL_URL=$(cask_url "$INTEL_DMG")
 
-          # Otherwise the urls are static (they interpolate #{version}); only the
-          # version line and the per-arch sha256 lines change each release.
           # awk tracks which on_arch block each line belongs to.
-          awk -v ver="$VERSION" -v armsha="$ARM_SHA" -v intelsha="$INTEL_SHA" -v url="$UNIVERSAL_URL" '
+          awk -v ver="$VERSION" -v armsha="$ARM_SHA" -v intelsha="$INTEL_SHA" -v armurl="$ARM_URL" -v intelurl="$INTEL_URL" '
             /^  version / { print "  version \"" ver "\""; next }
             /on_arm do/   { blk="arm";   print; next }
             /on_intel do/ { blk="intel"; print; next }
@@ -215,7 +211,10 @@ jobs:
               if (blk=="arm"   && armsha   != "") { print "    sha256 \"" armsha   "\""; next }
               if (blk=="intel" && intelsha != "") { print "    sha256 \"" intelsha "\""; next }
             }
-            /^    url / { if (url != "") { print "    url \"" url "\""; next } }
+            /^    url / {
+              if (blk=="arm"   && armurl   != "") { print "    url \"" armurl   "\""; next }
+              if (blk=="intel" && intelurl != "") { print "    url \"" intelurl "\""; next }
+            }
             { print }
           ' "$CASK" > "$CASK.tmp" && mv "$CASK.tmp" "$CASK"
           cat "$CASK"
