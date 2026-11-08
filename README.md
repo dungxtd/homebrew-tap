@@ -32,6 +32,17 @@ brew uninstall --cask <app>          # keep app data
 brew uninstall --cask --zap <app>    # also remove app data
 ```
 
+## Apps
+
+| App | Install | Platforms |
+| --- | --- | --- |
+| nextflix | `brew install --cask dungxtd/tap/nextflix` | macOS |
+| [cktry](https://github.com/dungxtd/cktry) | `brew install --cask dungxtd/tap/cktry` | macOS, Linux (Homebrew 4.5+) |
+
+cktry writes `Casks/cktry.rb` from its own release workflow (its installers
+stay on its releases, and the cask covers Linux too); it does not use the
+dispatch below.
+
 ## Adding an app
 
 1. Copy [`templates/cask.rb.tmpl`](templates/cask.rb.tmpl) to `Casks/<app>.rb` and fill the placeholders.
