@@ -22,9 +22,9 @@ cask "cktry" do
 
     # Ad-hoc signed (no Developer ID or notarization yet): Gatekeeper would
     # refuse it as damaged on first open, so the quarantine flag goes on install
-    postflight do
-      system_command "/usr/bin/xattr",
-                     args: ["-dr", "com.apple.quarantine", "#{appdir}/CKtry.app"]
+    postflight_steps do
+      run "/usr/bin/xattr",
+          args: ["-dr", "com.apple.quarantine", "{{appdir}}/CKtry.app"]
     end
 
     # The app's database, kubeconfigs and logs; its Docker containers stay
