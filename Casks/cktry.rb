@@ -3,11 +3,11 @@
 # their keys) after each release, and the installers stay on cktry's
 # releases (macOS DMGs and Linux AppImages); keep this structure.
 cask "cktry" do
-  version "0.2.0"
-  sha256 arm:          "c895faddb464e469f760d50a12111778024b4652515243b44484940bb2559a13",
-         intel:        "338422712cc6cdddcf0ab751561120fdaeedc19f778140346c600d8ec2751d22",
-         arm64_linux:  "3156fa809d4bfb7946ca4826df4151145e60b3454d1438fa2e5d236f9752cb67",
-         x86_64_linux: "c4a7ac85aecd1c64322201380d64805dae4cb02246747083cb4c91dfdccdcaef"
+  version "0.2.1"
+  sha256 arm:          "d4a8e8161a7c62d17dcb0996a4cb11de70168f8092405c20eba9ef8c296dd99e",
+         intel:        "db15c8c6e67dd8efbe36001306133e4d3099a52d55865eb98b5e48eb1298d539",
+         arm64_linux:  "cc29f10b4873c04907b67e1c912776e8b4bb152058ae7aef30e28b0a245e2a76",
+         x86_64_linux: "518082c64cada7ac55dc5cd88b5781d1c7edc3c75979b319e8fc7d368fef1f80"
 
   on_macos do
     on_arm do
