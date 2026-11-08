@@ -4,10 +4,10 @@
 # releases (macOS DMGs and Linux AppImages); keep this structure.
 cask "cktry" do
   version "0.2.0"
-  sha256 arm:          "2d4e55d1eb6b0cb65b0c01b459ae0d85a259cffb93f21eb0e9a1fefadef1010a",
-         intel:        "33d430fcfc5b6b35a874f3a815f0576a9ef55284f9691b4bfd164d1620b18061",
-         arm64_linux:  "d49729185fa667aeb83012d899dcda72ce2e63bdf9168eb674223778825673db",
-         x86_64_linux: "28115f3b7755eff1c6fa2ad40741279bf775a642660a7f7be0c90743fecf58d3"
+  sha256 arm:          "c895faddb464e469f760d50a12111778024b4652515243b44484940bb2559a13",
+         intel:        "338422712cc6cdddcf0ab751561120fdaeedc19f778140346c600d8ec2751d22",
+         arm64_linux:  "3156fa809d4bfb7946ca4826df4151145e60b3454d1438fa2e5d236f9752cb67",
+         x86_64_linux: "c4a7ac85aecd1c64322201380d64805dae4cb02246747083cb4c91dfdccdcaef"
 
   on_macos do
     on_arm do
