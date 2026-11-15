@@ -3,11 +3,11 @@
 # their keys) after each release, and the installers stay on ckpro's
 # releases (macOS DMGs and Linux AppImages); keep this structure.
 cask "ckpro" do
-  version "0.3.0"
-  sha256 arm:          "4685fb5dbf479ce8686ef3a7f37b0a3206d28c19685de130673cb08938ab7f16",
-         intel:        "0a16a3578c33f2d76e4b3e4391088871791f1c3beb62ebcd61f93294901ea8a1",
-         arm64_linux:  "9775a6eda651fd37e56d4c067735d7a6132d714de1b030131f0ce77d78f5f469",
-         x86_64_linux: "3a2791be6fd4a86da029bb32dad692bda6176a4d270afd0526aa3acb1b7da91c"
+  version "0.3.1"
+  sha256 arm:          "821447f40512e918c6a8394bc454b1409fc75cefe648843120905559b879eba0",
+         intel:        "6e6bd6ac7a97f21625cc7deec6ae612625daac5f7dbbb1c7de0c41881e2a0465",
+         arm64_linux:  "61c2bb41de2f2485469f51d9b0d523d82547a5f43d805de1f5624ed0b9fe0e1b",
+         x86_64_linux: "1a9328e63777aefeecaedd357a04ba33952c4fe8c3714c2cc8a9eb8d3d510f55"
 
   on_macos do
     on_arm do
