@@ -18,13 +18,13 @@ cask "ckpro" do
     end
 
 
-    app "ckpro.app"
+    app "CKPro.app"
 
     # Ad-hoc signed (no Developer ID or notarization yet): Gatekeeper would
     # refuse it as damaged on first open, so the quarantine flag goes on install
     postflight_steps do
       run "/usr/bin/xattr",
-          args: ["-dr", "com.apple.quarantine", "{{appdir}}/ckpro.app"]
+          args: ["-dr", "com.apple.quarantine", "{{appdir}}/CKPro.app"]
     end
 
     # The app's database, kubeconfigs and logs; its Docker containers stay
@@ -57,7 +57,7 @@ cask "ckpro" do
     ]
   end
 
-  name "ckpro"
+  name "CKPro"
   desc "Practice the CKA, CKAD and CKS exams on local Kubernetes clusters"
   homepage "https://github.com/dungxtd/ckpro"
 end
