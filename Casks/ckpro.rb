@@ -17,7 +17,6 @@ cask "ckpro" do
       url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_macos-x64_ckpro_#{version}_x64.dmg"
     end
 
-
     app "CKPro.app"
 
     # Ad-hoc signed (no Developer ID or notarization yet): Gatekeeper would
@@ -27,14 +26,21 @@ cask "ckpro" do
           args: ["-dr", "com.apple.quarantine", "{{appdir}}/CKPro.app"]
     end
 
-    # The app's database, kubeconfigs and logs; its Docker containers stay
-    # (remove them with `docker compose -p ckpro down`)
+    # The app's database, kubeconfigs and logs, in ckpro (dev.ckpro.app up
+    # to 0.3); its Docker containers stay (remove them with
+    # `docker compose -p ckpro down`)
     zap trash: [
+      "~/Library/Application Support/ckpro",
       "~/Library/Application Support/dev.ckpro.app",
       "~/Library/Caches/dev.ckpro.app",
+      "~/Library/Caches/dev.ckpro.CKPro",
+      "~/Library/HTTPStorages/dev.ckpro.CKPro",
       "~/Library/Logs/dev.ckpro.app",
       "~/Library/Preferences/dev.ckpro.app.plist",
+      "~/Library/Preferences/dev.ckpro.CKPro.plist",
+      "~/Library/Saved Application State/dev.ckpro.CKPro.savedState",
       "~/Library/WebKit/dev.ckpro.app",
+      "~/Library/WebKit/dev.ckpro.CKPro",
     ]
   end
   on_linux do
@@ -49,10 +55,12 @@ cask "ckpro" do
       app_image "ckpro_linux-x64_ckpro_#{version}_amd64.AppImage", target: "ckpro.AppImage"
     end
 
-    # The app's database, kubeconfigs and logs; its Docker containers stay
+    # The app's database, kubeconfigs and logs, in ckpro (dev.ckpro.app up
+    # to 0.3); its Docker containers stay
     zap trash: [
       "~/.cache/dev.ckpro.app",
       "~/.config/dev.ckpro.app",
+      "~/.local/share/ckpro",
       "~/.local/share/dev.ckpro.app",
     ]
   end
