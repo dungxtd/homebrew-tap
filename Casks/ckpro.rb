@@ -3,18 +3,18 @@
 # their keys) after each release, and the installers stay on ckpro's
 # releases (macOS DMGs and Linux AppImages); keep this structure.
 cask "ckpro" do
-  version "0.3.2"
-  sha256 arm:          "f71eeb3efb34e8130b9e00531ed4d2d5e9562b81f4c5450e5c9bdce43c1f3be2",
-         intel:        "403604e651ddb65754c475937921f8e91e42c5354282943bc10fae67e930c26d",
-         arm64_linux:  "3c4e2921ae347990d7020edf1aac26079c21076d132e74d3a34812b6c1b8b38c",
-         x86_64_linux: "dbab88c87cf699ae21606ccc53135359aa8e1f28b703dc884eb39f83a4b22a2e"
+  version "0.3.3"
+  sha256 arm:          "6ef39ec547a67a7f5d9d5e7db8042035104b02cdbbb620e64c1684205cea72e3",
+         intel:        "8b83da0d44a0c15b8ea5aa14d59df2b685dd0284fc671ba3cd1fb5a675b8e2dc",
+         arm64_linux:  "21c2fe79c0a5cb5630db08d2088139a558020dd04d44300904ccb1549546a3d5",
+         x86_64_linux: "7b53755aaac07db9e674aa1add314c0167d23822002a6c502eb72e6b70ed1997"
 
   on_macos do
     on_arm do
-      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_macos-arm64_ckpro_#{version}_aarch64.dmg"
+      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_#{version}_macos-arm64.dmg"
     end
     on_intel do
-      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_macos-x64_ckpro_#{version}_x64.dmg"
+      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_#{version}_macos-x64.dmg"
     end
 
     app "CKPro.app"
@@ -45,14 +45,14 @@ cask "ckpro" do
   end
   on_linux do
     on_arm do
-      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_linux-arm64_ckpro_#{version}_aarch64.AppImage"
+      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_#{version}_linux-arm64.AppImage"
 
-      app_image "ckpro_linux-arm64_ckpro_#{version}_aarch64.AppImage", target: "ckpro.AppImage"
+      app_image "ckpro_#{version}_linux-arm64.AppImage", target: "ckpro.AppImage"
     end
     on_intel do
-      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_linux-x64_ckpro_#{version}_amd64.AppImage"
+      url "https://github.com/dungxtd/ckpro/releases/download/v#{version}/ckpro_#{version}_linux-x64.AppImage"
 
-      app_image "ckpro_linux-x64_ckpro_#{version}_amd64.AppImage", target: "ckpro.AppImage"
+      app_image "ckpro_#{version}_linux-x64.AppImage", target: "ckpro.AppImage"
     end
 
     # The app's database, kubeconfigs and logs, in ckpro (dev.ckpro.app up
